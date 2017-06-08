@@ -1,0 +1,335 @@
+<html>
+	<head>
+		<title>Life Simulation</title>
+		<script type = "text/javascript" src="../Objects/Blocks/PlantBlock.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/SurvivalEvo.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/PredEvo.js"></script>
+	        <script type = "text/javascript" src="../Generators/SurvivalMazeGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/MazeSurvivalGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/StoryGenerator.js"></script>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript" src= "../scripts/jquery-1.4.2.min.js"></script>
+		
+		<script type = "text/javascript">
+		
+		        var debug = false;
+			var speed = 1000;
+		        var block_width = 25;
+			var height = block_width*13;
+			var width = block_width*13
+			var gen_text = null;
+			var gen_summary = null;
+			var best_fit = null;
+			var evo_size = 5;
+			var num_evos = 50; //size of each generation
+			var num_ticks = 40; 
+			var num_gens = 15;
+			var generation_texts = [];
+			var previous_generation_number = 0;
+			var story_generator;
+			var clicked = "none";
+			//for legend
+			var random_creature;
+			var child_creature;
+			var predator;
+			var empty_block;
+			var fertile_block;
+			var full_block;
+			var pheremone_block;
+			//for drawing things from legend
+			var mouseIsDown = false;
+			//starting and stopping
+			var run = true;
+			var mercy = true;
+			var ticker;
+			var start_button;
+			var start_button_text;
+			var mercy_button;
+			var mercy_button_text;
+			
+
+		        //a matrix (array of arrays) to hold all blocks.
+		        var world = new Array(Math.round(height/block_width)); 
+		        var current_time = new Date();
+		        var debug_tick = 0;
+		        var evo_gen = null;
+			window.onload = function(){
+			  paper = new Raphael(document.getElementById('sim'),width+500,height);
+			  //var ground = paper.rect(0,0,width*2,height*10);
+		          //ground.attr("fill", "#ffffff")
+
+		          //[down][over]
+		          story_generator = new StoryGenerator();
+			  gen = new SurvivalMazeGenerator(height, width, block_width, world, paper, story_generator);
+			  //the solvable maze
+			  world = gen.generate();
+			  //keeps track of each generation of evos.
+			  evo_gen = new MazeSurvivalGenerator(num_evos, num_ticks, block_width, world, paper, gen.start, speed, num_gens, evo_size, story_generator);
+			  evo_gen.firstGeneration();
+
+			  //set mouse listener
+			  $('#sim').mousedown(function() {
+                               mouseIsDown = true;
+                          });
+                          
+                          $('#sim').mouseup(function() {
+                               mouseIsDown = false;
+                          });
+                          
+                          
+			  displayLegend();
+			  story_generator.writeStory("Begining", num_evos); 
+			  ticker = setInterval("startTimer()", speed);              
+			}//end on load
+				
+
+	           
+	           
+	          //the tick 
+	          function startTimer(){
+	            	tick();
+	          };
+	          
+	          function toggleTicker(){
+	              run = !run;
+	              if(run == false){
+	                  clearInterval(ticker);
+	                  start_button_text.attr({"text": "Start"});
+	                  start_button.animate({"fill": "#397030"},1000, "elastic");
+	              }else{
+	                  ticker = setInterval("startTimer()", speed);
+	                  start_button_text.attr({"text": "Stop"});
+	                  start_button.animate({"fill": "#943214"},1000, "elastic");
+	              }
+	          }
+	          
+	          function toggleMercy(){
+	              mercy = !mercy;
+	              if(!mercy){
+	                 clicked = "fire";
+	                 mercy_button_text.attr({"text": "Mercy"});
+	                 mercy_button.animate({"fill": "#397030"},1000, "elastic");
+	              }else{
+	                 clicked = "";
+	                 mercy_button_text.attr({"text": "Smite"});
+	                 mercy_button.animate({"fill": "#943214"},1000, "elastic");
+	              }
+	          }
+	          
+	        
+	          
+
+	          
+	          function displayLegend(){
+	             //box around legend
+	             paper.rect(width + 10,0,300,300);
+	             
+	             random_creature = new SurvivalEvo(world[0][0],block_width, world, speed, num_ticks, evo_size);
+                     var random_sprite = paper.circle(width + 25, 10, random_creature.size);
+                     random_sprite.attr({"fill": random_creature.color, 'stroke-width': 1});
+                     random_sprite.click(function () {
+                         clicked = "random";
+                         processClick(this);
+                     });
+                     random_creature.setSprite(random_sprite);
+                     paper.text(width + 100, 10, "Herbivore Creature");
+
+                     
+                     predator = new PredEvo(world[0][0],block_width, world, speed, num_ticks, evo_size*2);
+                     var predator_sprite = paper.circle(width + 25, 110, predator.size);
+                     predator_sprite.attr({"fill": predator.color, 'stroke-width': 2});
+                     predator_sprite.click(function () {
+                         clicked = "predator";
+                         processClick(this);
+                     });                    
+                     predator.setSprite(predator_sprite);
+                     paper.text(width + 100, 110, "Predator");
+                
+
+                     empty_block =  new PlantBlock(width + 15,140,block_width,paper)	
+                     empty_block.earth_sprite.click(function () {
+                         clicked = "empty";
+                         processClick(this);
+                     });
+                     empty_block.fertility = 0;	             
+	             empty_block.makeSpace();
+	             paper.text(width + 100, 150, "Barren Land");
+	             
+	             fertile_block =  new PlantBlock(width + 15,170,block_width,paper)	
+                     fertile_block.earth_sprite.click(function () {
+                         clicked = "fertile";
+                         processClick(this);
+                     });
+                     fertile_block.fertility = 100;	             
+	             fertile_block.makeEmpty();
+	             paper.text(width + 100, 180, "Fertile Land");
+	             
+	             
+                     full_block =  new PlantBlock(width + 15,200,block_width,paper)	
+                     full_block.earth_sprite.click(function () {
+                         clicked = "full";
+                         processClick(this);
+                     });	             
+
+	             full_block.makeBarrier();
+	             full_block.disease = 0;
+	             full_block.setColor();
+	             paper.text(width + 100, 210, "Impenetrable Jungle");
+	             
+	             pheremone_block =  new PlantBlock(width + 15,230,block_width, paper)	
+                     pheremone_block.earth_sprite.click(function () {
+                         clicked = "pheremone_block";
+                         processClick(this);
+                     });	             
+	             //disease_block.makeBarrier();
+	             pheremone_block.pheremone_concentration = 100;
+	             pheremone_block.setColor();
+
+	             paper.text(width + 100, 240, "Creature Phereomones");
+	             
+	             //instructions
+	             
+	             var instructions = paper.text(width + 150, 290, "Click on legend item to select. Click in world to place");
+	             //start and stop button
+	             
+	             start_button = paper.rect(width+200, height-95, 100,50);
+	             start_button.attr({fill: "#943214", stroke: "none"});	  
+	             start_button_text = paper.text(width+250, height-70, "Stop");
+	             start_button_text.attr({"font-size": 30, "font-family": "Helvetica", fill: "#ffffff"});
+	             start_button.click(function () {
+                         toggleTicker();
+                     });  
+                     start_button_text.click(function () {
+                         toggleTicker();
+                     });  
+                     
+ 	             mercy_button = paper.rect(width+200, height-165, 100,50);
+	             mercy_button.attr({fill: "#943214", stroke: "none"});	  
+	             mercy_button_text = paper.text(width+250, height-140, "Smite");
+	             mercy_button_text.attr({"font-size": 30, "font-family": "Helvetica", fill: "#ffffff"});
+	             mercy_button.click(function () {
+                         toggleMercy();
+                     });  
+                     mercy_button_text.click(function () {
+                         toggleMercy();
+                     });                                  
+	          }
+	          
+	          //block in world was clicked, depending on what is toggled in legend,
+	          //do different actions
+	          function blockClicked(x,y){
+	             var block_clicked = world[Math.floor(y/block_width)][Math.floor(x/block_width)];
+	             // block_clicked.sprite.attr({"stroke-width": 3, "stroke": "#000000"});
+	             if(clicked == "fire"){
+	                 block_clicked.burn();
+	             }else if(clicked == "empty"){
+	                 block_clicked.makeSpace();
+	                 block_clicked.fertility = 0;
+	                 block_clicked.setColor();
+	             }else if(clicked == "fertile"){
+	                 block_clicked.makeSpace();
+	                 block_clicked.fertility = 100;
+	                 block_clicked.setColor();    
+	             }else if(clicked == "full"){
+	                 block_clicked.makeBarrier();
+	                 block_clicked.disease = 0;
+	                 block_clicked.setColor();
+	             }else if(clicked == "pheremone_block"){
+	                 //block_clicked.makeBarrier();
+	                 block_clicked.pheremone_concentration = 100;
+	                 block_clicked.setColor();	              
+	             }else if(clicked == "left" || clicked == "right" || clicked == "down" || clicked == "child" || clicked == "random" || clicked == "disease"){
+	                 //make creature
+	                 var creature;
+	                 if(clicked == "left"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
+	                 }else if(clicked == "right"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+	                 }else if(clicked == "down"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+	                 }else if(clicked == "child"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size);
+	                 }else if(clicked == "random"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size);
+	                 }else if(clicked == "disease"){
+	                     creature = new SurvivalEvo(block_clicked,block_width, world, speed, num_ticks, evo_size);
+	                 }
+	             //set sprite
+	             var csprite = paper.circle(creature.x, creature.y, creature.size);
+                     csprite.attr({"fill": creature.color, 'stroke-width': 1});
+                     creature.setSprite(csprite);
+                     if(clicked == "disease"){
+                         creature.makeDiseased();
+                     }
+	             
+	             //add to array
+	             evo_gen.evos.push(creature);	         
+	             }else if(clicked == "predator"){
+	                 pred = new PredEvo(block_clicked,block_width, world, speed, num_ticks, evo_size*2);
+	                 var csprite = paper.circle(pred.x, pred.y, pred.size);
+	                 csprite.attr({"fill": predator.color, 'stroke-width': 2});
+	                 pred.setSprite(csprite);
+	                 evo_gen.pred_evos.push(pred);
+	             }//end check which click is toggled
+	          }
+	          
+	          //gets the item that was clicked, and highlights it.
+	          //gets rid of previous sprite.
+	          function processClick(item){
+	             //clear all existing
+	             if(mercy != true){
+	               toggleMercy();
+	             }
+	             random_creature.sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             predator.sprite.attr({"stroke-width": 2, "stroke": "#FF0000"});
+	             empty_block.earth_sprite.attr({"stroke-width": 0, "stroke": "#000000"});
+	             fertile_block.earth_sprite.attr({"stroke-width": 0, "stroke": "#000000"});
+	             full_block.earth_sprite.attr({"stroke-width": 0, "stroke": "#000000"});
+	             pheremone_block.setColor();
+	             //highlight current
+	             item.attr({"stroke-width": 3, "stroke": "#FFFF00"});
+	          }
+	          
+	          function displayStory(){
+	            start = "<p>"
+	            end = "</p>"
+	            //only update if new
+	            if($('#story').html() != start + story_generator.story + end){
+	                $('#story').empty();
+	                $('#story').append(start + story_generator.story + end);
+	                $('#story').scrollTop($('#story')[0].scrollHeight);
+	            }
+	          }
+	          
+	          //each tick, creatures move slightly
+	          function tick(){
+	              //creatures
+	              if(evo_gen.done == false){
+                        evo_gen.tick();
+                      }
+
+                      //plants
+                      if(Math.random() * 100 < 70){
+                        gen.tick();
+                      }
+                      
+                      displayStory();
+	          }//end tick
+	          
+	           
+
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Life Simulation</h1> <a href = "about.html">About </a>
+
+                
+		<div id = "sim", style = "">
+		<div id = "story", style = "width: 650px;height:400px;overflow:auto;">
+
+		</div>
+	</body>
+</html>

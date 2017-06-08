@@ -1,0 +1,42 @@
+<html>
+<head>
+    <title> About Javascript Life Simulation </title>
+</head>
+
+<body>
+<h1>About Javascript Life Simulation </h1>
+<a href = "story_world.html"> Back </a>
+<p>
+
+A world is generated with a random amount of plants and land fertility.  Herbivore creatures are spawned at the top of this world. If there are enough herbivore creatures,  predator creatures will be attracted. Creatures are incredibly simple:  If they are near food(plants for herbivores, herbivores for predators), they will eat it.  If they are near other creatures of the same type and they are not hungry, they will breed.  They even have a small chance of reproducing asexually if they are alone for a long period of time.   Predators are live slightly longer than herbivores, and can go a bit longer without eating an herbivore.
+</p>
+
+<p>
+
+Both herbivores and predators have a simple algorithm that determines how they move.  Each creature has a string of letters, such as "LLLRRRUUDD" with "L" representing a left movement, "U" an upward movement and so on. Each creatures color is based on their DNA, their blueness corresponds to how often "L" shows up, their greenness corresponds to how often "R" shows up, and the amount they move up and down is combined to form their red value.   Should a creature attempt to move into a barrier (such as a block with too many plants in it) it simply stays put.  Each creature's movement algorithm also serves as their simplistic DNA.  When two creatures breed, their DNA is combined, with roughly half of the string coming from one parent and half from the other, with a small chance of mutation.  The point of this was to see how simple a DNA could be used for a genetic algorithm (the creatures are surprisingly good at finding food despite their simplicity). 
+</p>
+
+<p> Some of the available plants are diseased.  Herbivore creatures that eat diseased plants have a chance to become diseased themselves. Diseased creatures have their DNA written to be more random, and have shorter life spans.  Diseased creatures pass on their disease to nearby creatures, and to predators if they are eaten.
+
+</p>
+
+<p>
+Fertility decreases over time as plants use up valuable resources.  All creatures restore fertility slightly when they eat and die.  Fire also restores fertility, at the cost of living plants and creatures.
+
+</p>
+
+<p>  The simulation possesses a narration engine, which comments on important events happening in the simulation (such as famine) and will look for reasons for events (famine being caused by barren ground, for example).  When all creatures have died, the narration engine generates a summary of the simulation.
+
+</p>
+
+<p>
+
+The legend to the right of the simulation allows you to interact with it.  Simply click on an image in the legend to toggle it, then click anywhere in the simulation to place the toggled item.  The only way fire will appear in the simulation is if you spawn it, for example.  Using the legend, you can also start and stop the simulation.
+
+</p>
+
+
+</body>
+
+
+</html>

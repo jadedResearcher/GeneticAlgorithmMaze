@@ -1,0 +1,11 @@
+in the artist world, creatures don't need to eat.
+
+They still navigate by pheremones (modular, maybe can turn on and off?)
+
+blocks don't have plants. instead, they have rgb color values.
+
+every tick a creature is on a block, they desposit a small amount of color (based on DNA, make it RGB instead of RLUD?)
+
+creatures move towards pheremones and/or dna.
+
+can put creatures down. can reset block to white.

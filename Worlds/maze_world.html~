@@ -1,0 +1,105 @@
+<html>
+	<head>
+		<title>Example of Maze Sim</title>
+		<script type = "text/javascript" src="../Objects/Blocks/MazeBlock.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/Evo.js"></script>
+	        <script type = "text/javascript" src="../Generators/SolvableMazeGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/MazeSolverGenerator.js"></script>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript">
+		
+		        var debug = false;
+			var speed = 1000;
+		        var block_width = 20;
+			var height = block_width*10;
+			var width = block_width*20;
+			var gen_text = null;
+			var gen_summary = null;
+			var best_fit = null;
+			var evo_size = 4;
+			var num_evos = 2; //size of each generation
+			var num_ticks = 20; //length of each generation
+			var num_gens = 15;
+			var generation_texts = [];
+			var previous_generation_number = 0;
+
+		        //a matrix (array of arrays) to hold all blocks.
+		        var world = new Array(Math.round(height/block_width)); 
+		        var current_time = new Date();
+		        var debug_tick = 0;
+		        var evo_gen = null;
+			window.onload = function(){
+			  paper = new Raphael(document.getElementById('sim'),width*2,height*10);
+			  var ground = paper.rect(0,0,width*2,height*10);
+		          ground.attr("fill", "#ffffff")
+
+		          //[down][over]
+			  gen = new SolvableMazeGenerator(height, width, block_width, world, paper);
+			  //the solvable maze
+			  world = gen.generate();
+			  
+			  //keeps track of each generation of evos.
+			  evo_gen = new MazeSolverGenerator(num_evos, num_ticks, block_width, world, paper, gen.start, gen.end, speed, num_gens, evo_size);
+			  evo_gen.firstGeneration();
+			  best_fit_header = paper.text(width + width *0.85, 20, "Best Fitness");
+			  best_fit_header.attr("font-weight", "bold");
+			  best_fit = paper.text(width + width * 0.85,  num_ticks+50, evo_gen.best_fittness);
+			  
+			  
+			  gen_summary_header = paper.text(width + width/2, 20, "Previous Summary");
+			  gen_summary_header.attr("font-weight", "bold");
+			  gen_summary = paper.text(width + width/2, num_evos * 4+15, evo_gen.generation_summary);
+			  
+			  gen_text = paper.text(40, 10, "Generation: " + evo_gen.generation_number);
+			  gen_text.attr("fill", "#000");
+			  
+                          avg_text = paper.text(50, 30, "Avg Top Fitness: " + evo_gen.average_fitness);
+			  avg_text.attr("fill", "#000");
+			  //console.log("done");
+			  //evo_gen.evos[0].Die();
+			  setInterval("startTimer()", speed);                
+			}//end on load
+				
+
+	           
+	           
+	          //the tick 
+	          function startTimer(){
+	            	tick();
+	          };
+	          
+	          //each tick, creatures move slightly
+	          function tick(){
+                      evo_gen.tick();
+
+                      gen_summary.attr("text", evo_gen.generation_summary);
+                      if(evo_gen.generation_number > previous_generation_number){
+                        gen_text.attr("text", "Generation: " + evo_gen.generation_number);
+                        avg_text.attr("text","Avg Top Fitness: " + evo_gen.average_fitness );
+                        best_fit.attr("text", evo_gen.best_fitness + "\n\nIn Gen: " + evo_gen.best_generation + "\n\nwith route of:\n" + evo_gen.parseRoute());
+                        previous_generation_number = evo_gen.generation_number;
+                        header = paper.text(width + 50, previous_generation_number * 20, "Generation: " + evo_gen.generation_number)
+                        header.attr('font-weight', "bold");
+                        //console.log(header.attr());
+                        generation_texts.push(header);
+                        generation_texts.push(paper.text(width + 50, previous_generation_number * 20+10, "Avg Top Fitness: " + evo_gen.average_fitness));
+                      }
+	          }//end tick
+	          
+	           
+
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Example of Maze Sim</h1>
+                <p>Algorithm for maze generation:  A random <font color="blue">start</font> and <font color = "limegreen">end</font> are selected. Each of them is marked, and set as an empty space. Then, a block touching the start point is selected as the next empty space. Every time a block is marked as an empty space, it spreads the emptiness either randomly (rarely) or in the direction the spread had been traveling. If it selects a non existant block to spread to, it spreads to the first existing block it finds that it is adjacent to.  There is a small chance of dead ends, and branching.  If a maze is generated that is still unsolvable (due to all being dead ends), it is discarded, and the system will try up to 9 times more (usually takes less than 5)  </p>
+                
+                <p>Algorithm for creature movement: Creatures generate random strings containing any of "LRDU" with L being "Left" and so on. Creatures follow these strings mindlessly untill their generation is up. At the end of their generation, the creatures who got to the goal fastest (or who were the closest absolute distance to the goal) are allowed to breed the next generation. Basic genetic algorithm, really. The creatures are colored based on their movement strings: Left is their <font color="blue">blue</font> value, Right is their <font color="green">green</font> value, and Up and Down are combined to make their <font color="red">red value</font>. Because the strings are random, most creatures end up grayish.</p>
+		<div id = "sim">
+
+		</div>
+	</body>
+</html>

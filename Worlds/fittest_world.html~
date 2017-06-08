@@ -1,0 +1,92 @@
+<html>
+	<head>
+		<title>Example of Maze Sim</title>
+		<script type = "text/javascript" src="../Objects/Blocks/PlantBlock.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/SurvivalEvo.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/PredEvo.js"></script>
+	        <script type = "text/javascript" src="../Generators/SurvivalMazeGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/MazeSurvivalGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/StoryGenerator.js"></script>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript">
+		
+		        var debug = false;
+			var speed = 1000;
+		        var block_width = 20;
+			var height = block_width*13;
+			var width = block_width*13
+			var gen_text = null;
+			var gen_summary = null;
+			var best_fit = null;
+			var evo_size = 4;
+			var num_evos = 21; //size of each generation
+			var num_ticks = 40; 
+			var tick_display;
+			var num_gens = 15;
+			var generation_texts = [];
+			var previous_generation_number = 0;
+			var story_generator;
+
+		        //a matrix (array of arrays) to hold all blocks.
+		        var world = new Array(Math.round(height/block_width)); 
+		        var current_time = new Date();
+		        var debug_tick = 0;
+		        var evo_gen = null;
+			window.onload = function(){
+			  paper = new Raphael(document.getElementById('sim'),width*2,height*10);
+			  var ground = paper.rect(0,0,width*2,height*10);
+		          ground.attr("fill", "#ffffff")
+
+		          //[down][over]
+			  gen = new SurvivalMazeGenerator(height, width, block_width, world, paper);
+			  //the solvable maze
+			  world = gen.generate();
+			  //keeps track of each generation of evos.
+			  evo_gen = new MazeSurvivalGenerator(num_evos, num_ticks, block_width, world, paper, gen.start, gen.end, speed, num_gens, evo_size);
+			  evo_gen.firstGeneration();
+			  story_generator = new StoryGenerator();
+			  tick_display = paper.text(width + width *0.85, 20, "# ticks: ");
+			  //console.log("done");
+			  story_generator.writeStory("Begining", num_evos);
+			  console.log(story_generator.story);
+			  setInterval("startTimer()", speed);                
+			}//end on load
+				
+
+	           
+	           
+	          //the tick 
+	          function startTimer(){
+	            	tick();
+	          };
+	          
+	          //each tick, creatures move slightly
+	          function tick(){
+	              //creatures
+                      evo_gen.tick();
+                      tick_display.attr("text","#tick: " + evo_gen.num_ticks );
+                      //plants
+                      if(Math.random() * 100 < 70){
+                        gen.tick();
+                      }
+	          }//end tick
+	          
+	           
+
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Example of Survival Sim</h1>
+                <p>A completely random world of plants and not plants is generated. Plants spread to not plants, based on what percent of the block is covered in plants. The more plants, the darker green and the greater the likelihood of spreading. Creatures eat plants in order to survive, and have enough energy to breed. Creatures are aesexual and sexual (can breed either way). </p>
+                
+                <p>Algorithm for creature movement: Creatures generate random strings containing any of "LRDU" with L being "Left" and so on. Creatures follow these strings mindlessly, breeding and combining their strings with other creatures they bump into (if they are well fed and want to breed). There is a relatively small chance of mutation in an individual character, else 50% comes from 1st parent, and 50% from second. The creatures are colored based on their movement strings: Left is their <font color="blue">blue</font> value, Right is their <font color="green">green</font> value, and Up and Down are combined to make their <font color="red">red value</font>. Because the strings are random, most creatures end up grayish.  Movement is the ONLY genetic component (thus creatures are truly random), they do not have any intelligence for seeking food/mates, etc.</p>
+                <p>Smaller creatures eat plants. Larger creatures eat smaller creatures.  Larger creatures spawn if there are enough creatures to support them, or if there are too many creatures and not enough predators.  They also breed normally. They are far more likely than smaller creatures to be wiped out. (thus, the spawning)</p>
+                
+		<div id = "sim">
+
+		</div>
+	</body>
+</html>

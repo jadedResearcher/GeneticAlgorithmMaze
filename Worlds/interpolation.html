@@ -1,0 +1,126 @@
+<html>
+	<head>
+		<title>Interpolation</title>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript">
+		  var x1 = 300;
+		  var x2 = 100;
+		  var y1 = 50
+		  var y2 = 200;
+		  var theta1 = -45;
+		  var theta2 = 0;
+		  var point_distance = 25;
+		  var paper; 
+		  
+		  window.onload = function(){
+			  paper = new Raphael(document.getElementById('sim'),500,500);
+			  init();
+			  //linearInterpolation();
+			  trigInterpolation();
+         
+	          }//end on load
+	          
+	          function init(){
+	                  p1 = paper.image("index.jpeg",x1, y1, 15,15);
+	                  console.log(p1);
+			  p1.rotate(theta1,x1,y1);
+			  paper.text(x1+50,y1,"("+x1+"," +y1 + ")" + "  " + theta1);
+			  p2 = paper.image("index.jpeg", x2, y2, 15,15);
+			  p2.rotate(theta2,x2,y2);
+			  paper.text(x2+50,y2,"("+x2+"," +y2 + ")" + "  " + theta2);
+	          }
+	          function linearInterpolation(){
+	             dx = (x2 -x1) 
+	             dy =  (y2 -y1)
+	             d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy,2))
+	             num = Math.floor(d/point_distance);
+	             for( i = 2; i<num+1; i++){
+	                 x = x1 + dx/d * 15 * i;
+	                 y = y1 + dy/d * 15 * i;
+	                 paper.image("index.jpeg", x,y,15,15);
+	             }
+	          };
+	          
+	          
+	          //for each linear theta, use cos and sin to find point
+	          function trigInterpolation(){
+	             dx = (x2 - x1) 
+	             dy =  (y2 - y1)
+	             convert = Math.PI/180
+	             d = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy,2))
+	             num = Math.round(d/point_distance);
+	             dt = (theta2 - theta1);
+	             x_prev = x1;
+	             y_prev = y1;
+	             for(i = 1; i<num; i++){
+	               t = Math.round(theta2 - dt/(i));
+	               //t = theta1;
+	               console.log(t);
+	               x = Math.round(x_prev + (point_distance*Math.sin(t*convert)));
+	               y = Math.round(y_prev + (point_distance*Math.cos(t*convert)));
+	               p = paper.image("index.jpeg", x,y,15,15);
+	               p.rotate(t,x,y);
+	               paper.text(x+50,y,"("+x+"," +y + ")" + "  " + t);
+	               //console.log(p);
+	               x_prev = x;
+	               y_prev = y;
+	             }//end for
+	          };
+	          
+	        function checkEnter(e){
+		    if (e.keyCode == 13) {
+                       new_x1 = document.getElementById("x1").value;
+                       new_x2 = document.getElementById("x2").value;
+                       new_y1 = document.getElementById("y1").value;
+                       new_y2 = document.getElementById("y2").value;
+                       new_t1 = document.getElementById("t1").value;
+                       new_t2 = document.getElementById("t2").value;
+                       if(new_x1 != ""){
+                         x1 = parseInt(new_x1);
+                       }
+                       if(new_x2 != ""){
+                         x2 = parseInt(new_x2);
+                       }
+                       if(new_y1 != ""){
+                         y1 = parseInt(new_y1);
+                       }
+                       if(new_y2 != ""){
+                         y2 = parseInt(new_y2);
+                       }
+                       if(new_t1 != ""){
+                         theta1 = parseInt(new_t1);
+                       }
+                       if(new_t2 != ""){
+                         theta2 = parseInt(new_t2);
+                       }
+                       paper.clear();
+                       init();
+                       trigInterpolation();
+                       return false;
+                   }
+		};
+		
+		</script>
+	</head>
+
+	<body>	
+	<div id = "sim">
+	<br>
+	Point 1<br>
+	x: <input id = "x1" type="text" name="x1" onkeypress="return checkEnter(event)" /> <br>
+	y: <input id = "y1" type="text" name="y1" onkeypress="return checkEnter(event)" /> <br>
+	angle: <input id = "t1" type="text" name="t1" onkeypress="return checkEnter(event)" /> <br>
+	<br><Br>
+	
+        Point 2<br>
+	x: <input id = "x2" type="text" name="x2" onkeypress="return checkEnter(event)" /> <br>
+	y: <input id = "y2" type="text" name="y2" onkeypress="return checkEnter(event)" /> <br>
+	angle: <input id = "t2" type="text" name="t2" onkeypress="return checkEnter(event)" /> <br>
+	<br><Br>
+	
+	
+	</div>
+	</body>
+	
+</html>
+

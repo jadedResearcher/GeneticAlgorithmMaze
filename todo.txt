@@ -1,0 +1,64 @@
+randomly generate maze, kind of like flower dsign.
+
+release sim creatures (maybe zombie sim?). Enjoy.
+
+MUST be simple sim creatures...want a lot.
+
+sim creatures: move randomly, react to immediately visible other creatures. humans run, zombies chase. zombie touches human, human is zombie (NO collisions).
+
+matrix of creatures (by x,y position) , tick. tick needs to be as fast as possible...each tick gets called with the sim passing an array of all creatures close by? or x closest creatures?
+
+would this be fast?
+
+		Block
+	NonSolidBlock		SolidBlock
+
+
+  Creature
+  
+  Zombie   Human
+  
+  
+  Creatures can move within a nonsolid block, but can't within a solid block. Not just the whole block either, by color? (to deal with explosions, etc?)
+  
+  Because of this, Blocks/NonBlocks don't have to be saved, only rendered. Color is the only thing that matters (might help collision detection).
+  
+  Creatures can check the color of the place they want to be (just one pixel?) and try to move somewhere else if it's the wrong color.
+  
+  
+  
+  ~~Step 1: code Blocks. Don't bother saving them to an array, or anything. ~~~~~DONE~~~~
+  
+  hrrm...getting color is harder than i thought...will have to do it by block (lame)
+  
+  ~~Step 2: code creatures. Creature's cannot be on a colored pixel. Code random movement, humans turning into zombies if touched.
+  
+  How to have creatures check for collision. Was going to do color, but if can't , how to get the block you're on/wanting to go to without transmitting the entire world every tick?
+  
+  Oh. Wait a tick (no pun intended).  What if each block has creatures that belong to it (they HAVE to be on a block, right?)
+  
+  What could happen is that creatures can either move WITHIN a block or OFF a block. A creature knows what block it is on (blocks don't know anything).
+  
+  Each tick, a creature decides a random x/y to move. The creature checks to see if that's on it's block or not. If so, hooray. If not, ...
+  
+  hrrm...if not, what?  Well, it'll need a way to find out what block it is now on. I can make it so that creatures can not move more than one block at a time...
+  
+  What if it was as simple as querying the next block?  The creature can figure out how much it moved off the block, and ask the world for the block adj to it (or diagonal).
+  
+  If the block's color is dark, the creature doesn't move this turn.  If the block's color is light,the creature now belongs to this new block, and moves.
+  
+  
+  BUGS: collision is not perfect, and also sometimes zombies just suddenly stop moving. why?  Collision is probably because i'm only looking at the nearest upper left corner of a block 
+  (which might nto be the thing i'm sitting on). them suddenly stopping happens even when barriers are turned off. Is it because there is an undefined block? wait, no, if there are no barriers
+  at all, things seem fine....besides getting stuck on the edges?
+  ~~DONE~~
+  
+  Step 2.5 Humans
+  
+  
+  ~~Step 3: Code simple ai.  Zombies chase, humans run.  Potential problems: don't let things see through barriers.
+  
+  ~~Step 4: maybe play with inteligence behind the maze generation? more creatures (ghosts?)
+  
+ 
+

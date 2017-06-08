@@ -1,0 +1,29 @@
+custom pheremone creature, custom pheremone block (possibly not needed, if creatures ignore, could use it for standard things...)  both creatures and blocks modified directly, creatures have boolean on whether or not to have "LRLRLRLR" DNA or pheremones
+
+creatures secrete pheremones in the block they are in.
+
+if a creature dies, they secrete negative pheremones
+
+work with smiting, spawning, story, etc.
+
+if they just move toward greatest pheremone, will just never leave their own block...
+
+Creatures move towards greatest concentration of FOOD primarily, if none found, follow pheremones?
+
+dna is pheremone strength over time (rather than LLLLRRR it would be an array of [77,33,22,11,99], creatures can adapt (maybe high pheremones are a bad thing?))
+
+when a creature dies, the secrete their highest possible pheremone from their DNA, but negative.
+
+blocks lose pheremones over time.  upper limit?
+
+blocks spread pheremones over time.  Block A drops Pheremones by 10, for example, and its 4 adj blocks gain 2 pheremones (net loss of two pheremones)
+
+should pheremones be visible? for debug at least, yes.
+
+dead burial (move dead things towards areas of high negativity?) optional
+
+
+
+
+
+

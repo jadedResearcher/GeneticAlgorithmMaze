@@ -1,0 +1,54 @@
+<html>
+	<head>
+		<title>Example of Procedural Plants</title>
+		
+		<script type = "text/javascript" src="scripts/jquery-1.4.2.min.js"></script>
+		<script type = "text/javascript" src="scripts/jquery.timers-1.2.js"></script>
+		<script type = "text/javascript" src="scripts/raphael-min.js"></script>
+		<script type = "text/javascript">
+	
+			
+			window.onload = function(){
+			paper = new Raphael(document.getElementById('sim'),1000,500);
+			
+			var ground = paper.rect(0,0,1000,500);
+			ground.attr("fill", "rgb(22,255,33)");
+			
+			var sky = paper.rect(0,0,1000,400);
+			sky.attr("fill", "#bffbff");
+			
+			var body = paper.ellipse(200,200,100,50);
+			body.attr({fill: "#FF00FF"});
+			
+			paper.remove();
+			
+			var leg = paper.rect(240,220,10,100,4);
+			leg.attr({fill: "#aa00aa"});
+			leg.animate({},1000, function () {leg.rotate(10,240,220)});
+			leg.animate({},1000, function () {leg.rotate(10,240,220)});
+			leg.animate({},1000, function () {leg.rotate(10,240,220)});
+			
+
+
+			
+			//var circle = paper.circle(400,300,1);
+			
+			var wind_velocity_sprite = paper.text(50,50, "Wind Velocity: ");
+			var test_path = paper.path("m 172.94899,298.69283 c 11.35601,-17.45775 20.84761,-7.1187 13.8984,-15.08485");
+			test_path.attr({'stroke-linejoin': "bevel", 'stroke-width': 3});
+			
+			var test_path = paper.path("M 400,300 c 0,0 10,10 ,35,-35 " );
+			}
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Example of Procedural Plants</h1>
+		
+		<div id = "sim">
+
+		</div>
+	</body>
+</html>

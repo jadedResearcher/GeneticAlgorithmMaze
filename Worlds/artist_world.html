@@ -1,0 +1,325 @@
+<html>
+	<head>
+		<title>Artist Simulation</title>
+		<script type = "text/javascript" src="../Objects/Blocks/ArtistPixelBlock.js"></script>
+		<script type = "text/javascript" src="../Objects/Creatures/ArtistEvo.js"></script>
+	        <script type = "text/javascript" src="../Generators/ArtistGenerator.js"></script>
+	        <script type = "text/javascript" src="../Generators/CanvasGenerator.js"></script>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript" src= "../scripts/jquery-1.4.2.min.js"></script>
+		
+		<script type = "text/javascript">
+		
+		        var debug = false;
+			var speed = 1000;
+		        var block_width = 15;
+			var height = block_width*25;
+			var width = block_width*25;
+			var gen_text = null;
+			var gen_summary = null;
+			var best_fit = null;
+			var evo_size = 5;
+			var num_evos = 0; //size of each generation
+			var num_ticks = 80; 
+			var num_gens = 15;
+			var can_breed = true;
+			var generation_texts = [];
+			var previous_generation_number = 0;
+			var clicked = "none";
+			//for legend
+			var red_creature;
+			var green_creature;
+			var blue_creature;
+			var random_creature;
+			var empty_block;
+			//for drawing things from legend
+			var mouseIsDown = false;
+			//starting and stopping
+			var run = true;
+			var attract = true;
+			var ticker;
+			var start_button;
+			var start_button_text;
+			var mercy_button;
+			var mercy_button_text;
+			var breed_button;
+			var breed_button_text;
+
+		        //a matrix (array of arrays) to hold all blocks.
+		        var world = new Array(Math.round(height/block_width)); 
+		        var current_time = new Date();
+		        var debug_tick = 0;
+		        var evo_gen = null;
+			window.onload = function(){
+			  paper = new Raphael(document.getElementById('sim'),width+500,height);
+			  //var ground = paper.rect(0,0,width*2,height*10);
+		          //ground.attr("fill", "#ffffff")
+
+		          //[down][over]
+			  gen = new CanvasGenerator(height, width, block_width, world, paper);
+			  //the solvable maze
+			  world = gen.generate();
+			  //keeps track of each generation of evos.
+			  evo_gen = new ArtistGenerator(num_evos, num_ticks, block_width, world, paper, gen.start, speed, num_gens, evo_size);
+			  evo_gen.firstGeneration();
+
+			  //set mouse listener
+			  $('#sim').mousedown(function() {
+                               mouseIsDown = true;
+                          });
+                          
+                          $('#sim').mouseup(function() {
+                               mouseIsDown = false;
+                          });
+                          
+                          
+			  displayLegend();
+			  ticker = setInterval("startTimer()", speed);              
+			}//end on load
+				
+
+	           
+	           
+	          //the tick 
+	          function startTimer(){
+	            	tick();
+	          };
+	          
+	          function toggleTicker(){
+	              run = !run;
+	              if(run == false){
+	                  clearInterval(ticker);
+	                  start_button_text.attr({"text": "Start"});
+	                  start_button.animate({"fill": "#397030"},1000, "elastic");
+	              }else{
+	                  ticker = setInterval("startTimer()", speed);
+	                  start_button_text.attr({"text": "Stop"});
+	                  start_button.animate({"fill": "#943214"},1000, "elastic");
+	              }
+	          }
+	          
+	          function togglePheremones(){
+	              attract = !attract;
+	              if(!attract){
+	                 for(evo in evo_gen.evos){
+	                     evo_gen.evos[evo].pheremone_direction = -1;
+	                 }
+	                 mercy_button_text.attr({"text": "Attract"});
+	                 mercy_button.animate({"fill": "#397030"},1000, "elastic");
+	              }else{
+	                 for(evo in evo_gen.evos){
+	                    evo_gen.evos[evo].pheremone_direction = 1;
+	                 }
+	                 mercy_button_text.attr({"text": "Repel"});
+	                 mercy_button.animate({"fill": "#943214"},1000, "elastic");
+	              }
+	          }
+	          
+	          function toggleBreeding(){
+	            can_breed = !can_breed;
+	              if(!can_breed){
+	                 for(evo in evo_gen.evos){
+	                     evo_gen.evos[evo].can_breed = can_breed;
+	                 }
+	                 breed_button_text.attr({"text": "Enable \n Breeding"});
+	                 breed_button.animate({"fill": "#397030"},1000, "elastic");
+	              }else{
+	                 for(evo in evo_gen.evos){
+	                    evo_gen.evos[evo].can_breed = can_breed;
+	                 }
+	                 breed_button_text.attr({"text": "Disable \n Breeding"});
+	                 breed_button.animate({"fill": "#943214"},1000, "elastic");
+	              }
+	          }
+	          
+	        
+	          
+
+	          
+	          function displayLegend(){
+	             //box around legend
+	             paper.rect(width + 10,0,300,300);
+	             
+	             red_creature = new ArtistEvo(world[0][0],block_width, world, speed, num_ticks, evo_size,"RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+                     var red_sprite = paper.circle(width + 25, 10, red_creature.size);
+                     red_sprite.attr({"fill": red_creature.color, 'stroke-width': 1});
+                     red_sprite.click(function () {
+                         clicked = "red";
+                         processClick(this);
+                     });
+                     red_creature.setSprite(red_sprite);
+                     paper.text(width + 100, 10, "Red Artist");
+                     
+                     green_creature = new ArtistEvo(world[0][0],block_width, world, speed, num_ticks, evo_size,"GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
+                     var green_sprite = paper.circle(width + 25, 30, green_creature.size);
+                     green_sprite.attr({"fill": green_creature.color, 'stroke-width': 1});
+                     green_sprite.click(function () {
+                         clicked = "green";
+                         processClick(this);
+                     });
+                     green_creature.setSprite(green_sprite);
+                     paper.text(width + 100, 30, "Green Artist");
+                     
+                     blue_creature = new ArtistEvo(world[0][0],block_width, world, speed, num_ticks, evo_size,"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+                     var blue_sprite = paper.circle(width + 25, 50, blue_creature.size);
+                     blue_sprite.attr({"fill": blue_creature.color, 'stroke-width': 1});
+                     blue_sprite.click(function () {
+                         clicked = "blue";
+                         processClick(this);
+                     });
+                     blue_creature.setSprite(blue_sprite);
+                     paper.text(width + 100, 50, "Blue Artist");
+                     
+                     random_creature = new ArtistEvo(world[0][0],block_width, world, speed, num_ticks, evo_size);
+                     var random_sprite = paper.circle(width + 25, 70, random_creature.size);
+                     random_sprite.attr({"fill": random_creature.color, 'stroke-width': 1});
+                     random_sprite.click(function () {
+                         clicked = "random";
+                         processClick(this);
+                     });
+                     random_creature.setSprite(random_sprite);
+                     paper.text(width + 100, 70, "Random Artist");
+                     
+                     
+                
+
+                     empty_block =  new ArtistPixelBlock(width + 15,140,block_width,paper)	
+                     empty_block.pixel_sprite.click(function () {
+                         clicked = "empty";
+                         processClick(this);
+                     });
+                     empty_block.fertility = 0;	             
+	             empty_block.makeSpace();
+	             paper.text(width + 100, 150, "Eraser");
+	
+	             
+	             //instructions
+	             
+	             var instructions = paper.text(width + 150, 290, "Click on legend item to select. Click in world to place");
+	             //start and stop button
+
+                     
+                     breed_button = paper.rect(width+200, 235, 100,50);
+	             breed_button.attr({fill: "#943214", stroke: "none"});	  
+	             breed_button_text = paper.text(width+250, 260, "Disable \n Breeding");
+	             breed_button_text.attr({"font-size": 20, "font-family": "Helvetica", fill: "#ffffff"});
+	             breed_button.click(function () {
+                         toggleBreeding();
+                     });  
+                     breed_button_text.click(function () {
+                         toggleBreeding();
+                     }); 
+                     
+ 	             mercy_button = paper.rect(width+200, 165, 100,50);
+	             mercy_button.attr({fill: "#943214", stroke: "none"});	  
+	             mercy_button_text = paper.text(width+250, 190, "Repel");
+	             mercy_button_text.attr({"font-size": 30, "font-family": "Helvetica", fill: "#ffffff"});
+	             mercy_button.click(function () {
+                         togglePheremones();
+                     });  
+                     mercy_button_text.click(function () {
+                         togglePheremones();
+                     });   
+                     
+                     
+                     	             
+	             start_button = paper.rect(width+200, 95, 100,50);
+	             start_button.attr({fill: "#943214", stroke: "none"});	  
+	             start_button_text = paper.text(width+250, 120, "Stop");
+	             start_button_text.attr({"font-size": 30, "font-family": "Helvetica", fill: "#ffffff"});
+	             start_button.click(function () {
+                         toggleTicker();
+                     });  
+                     start_button_text.click(function () {
+                         toggleTicker();
+                     });                                 
+	          }
+	          
+	          //block in world was clicked, depending on what is toggled in legend,
+	          //do different actions
+	          function blockClicked(x,y){
+	             var block_clicked = world[Math.floor(y/block_width)][Math.floor(x/block_width)];
+	             // block_clicked.sprite.attr({"stroke-width": 3, "stroke": "#000000"});
+	             if(clicked == "fire"){
+	                 block_clicked.burn();
+	             }else if(clicked == "empty"){
+	                 block_clicked.makeSpace();
+	                 block_clicked.red = 0;
+	                 block_clicked.green = 0;
+	                 block_clicked.blue = 0;
+	                 block_clicked.opacity = 0;
+	                 block_clicked.setColor();            
+	             }else if(clicked == "red" || clicked == "green" || clicked == "blue" || clicked == "random"){
+	                 //make creature
+	                 var creature;
+	                 if(clicked == "red"){
+	                     creature = new ArtistEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+	                 }else if(clicked == "green"){
+	                     creature = new ArtistEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG");
+	                 }else if(clicked == "blue"){
+	                     creature = new ArtistEvo(block_clicked,block_width, world, speed, num_ticks, evo_size, "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+	                 }else if(clicked == "random"){
+	                     creature = new ArtistEvo(block_clicked,block_width, world, speed, num_ticks, evo_size);
+	                 }
+	                 if(attract){
+	                   creature.pheremone_direction = 1;
+	                 }else{
+	                   creature.pheremone_direction = -1;
+	                 }
+	             //set sprite
+	             var csprite = paper.circle(creature.x, creature.y, creature.size);
+                     csprite.attr({"fill": creature.color, 'stroke-width': 1});
+                     creature.setSprite(csprite);
+                     creature.can_breed = can_breed;
+       
+	             
+	             //add to array
+	             evo_gen.evos.push(creature);	         
+	             }
+	          }
+	          
+	          //gets the item that was clicked, and highlights it.
+	          //gets rid of previous sprite.
+	          function processClick(item){
+	             //clear all existing
+	             red_creature.sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             green_creature.sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             blue_creature.sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             random_creature.sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             empty_block.pixel_sprite.attr({"stroke-width": 1, "stroke": "#000000"});
+	             //highlight current
+	             item.attr({"stroke-width": 3, "stroke": "#FFFF00"});
+	          }
+	          
+
+	          
+	          //each tick, creatures move slightly
+	          function tick(){
+	              //creatures
+	              if(evo_gen.done == false){
+                        evo_gen.tick();
+                      }
+
+                      //plants
+                      if(Math.random() * 100 < 70){
+                        gen.tick();
+                      }
+
+	          }//end tick
+	          
+	           
+
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Artist Simulation</h1> <a href = "about.html">About </a>
+
+                
+		<div id = "sim", style = "">
+
+		</div>
+	</body>
+</html>

@@ -1,0 +1,194 @@
+//Evos are creatures that a genetic algorithm is used on.
+//there genes are the path they will take through the maze
+//such as L R U D R L  
+//if they attempt to move into a block that is a barrier, 
+//they simply remain where they are.
+
+//each evo is on one and only one block, but is rendered randomly on said block.
+//each evo moves to another block, and is again rendered randomly on that block
+function Evo(block, goal, block_width, world, speed, path_length, route){
+  this.block = block;
+  this.speed = speed;
+  this.block_width = block_width;
+  this.goal = goal;
+  this.route = route;
+  this.path_length = path_length;
+  this.world = world; //don't expect this to change
+  this.route_index = 0;
+  //lower the fitnes, the better it is
+  this.fitness = null;
+
+  
+  this.setSprite = function(mysprite){
+     this.sprite = mysprite;
+  };
+  
+  this.randomDirection = function(){
+     chance = Math.random() * 100;
+     if(chance > 75){
+         return "L";
+     }else if(chance < 75 && chance > 50){
+         return "R";
+     }else if(chance < 50 && chance > 25){
+        return "U";
+     }else{
+         return "D";
+     }
+  }//end random direction
+  
+  this.randomPath = function(){
+     var st = ""
+     for(var i = 0; i < this.path_length; i++){
+       st += this.randomDirection();
+     }//end for
+     return st;
+  }//end random Path
+  
+
+  
+  //chooses a random position on the block to be at.
+  this.setPosition = function(){
+    //upper left corner?
+    //so i can go width down, or width to the right.
+    target_x = this.block.x;
+    target_y = this.block.y;
+    this.x = target_x + Math.round((Math.random() * this.block_width));
+    this.y = target_y + Math.round((Math.random() * this.block_width));
+    this.x_index = Math.floor(this.x / this.block_width);
+    this.y_index = Math.floor(this.y /this.block_width);    
+  };
+  
+  this.setColor = function(){
+      this.red = 0;
+      this.blue = 0;
+      this.green = 0;
+      for(var i = 0; i < this.route.length; i++){
+        if(this.route.charAt(i) == 'L'){
+          this.blue += Math.floor(255/this.path_length);
+        }
+        if(this.route.charAt(i) == 'R'){
+          this.green += Math.floor(255/this.path_length);
+        }
+        if(this.route.charAt(i) == 'U' || this.route.charAt(i) == 'D'){
+          this.red += Math.floor(255/(this.path_length*2));
+        }
+      }//end for
+      
+      this.color = "rgb(" + this.red + "," + this.green + "," + this.blue +")";
+  };
+  
+  
+  if(this.route == null){
+    this.route = this.randomPath();
+  }
+  
+  //can't call them before they are defined, so have to set position and color here, not at top
+  this.setPosition();
+  this.setColor();
+  
+  
+  // ?~~~~~~~~~~~~~~~~~~~End initializing functions and parms~~~~~//
+  
+  //attempt to move in the direction specified.
+  //don't move at all if blocked
+  this.Move = function(){
+    direction = this.route.charAt(this.route_index);
+    this.route_index ++;
+    //go left
+    if(direction == 'L'){
+      potential_block = world[this.y_index][this.x_index - 1];
+      x_pot = this.x_index - 1;
+      y_pot = this.y_index;
+    };
+    
+    if(direction == 'R'){
+      potential_block = world[this.y_index][this.x_index + 1];
+      x_pot = this.x_index + 1;
+      y_pot = this.y_index;
+    };
+    
+    if(direction == 'U'){
+    //have to check row
+      if(world[this.y_index -1]){
+       potential_block = world[this.y_index - 1][this.x_index];
+       x_pot = this.x_index;
+       y_pot = this.y_index - 1;
+      }
+    };
+    
+    if(direction == 'D'){
+      if(world[this.y_index + 1]){
+        potential_block = world[this.y_index + 1][this.x_index];
+        x_pot = this.x_index;
+        y_pot = this.y_index + 1;
+      }
+    };
+    
+    if(potential_block != null && !potential_block.isBarrier()){
+      this.block = potential_block;
+      this.x_index = x_pot;
+      this.y_index = y_pot;
+    }else{
+    //do nothing
+
+    }
+    
+  }//end move
+  
+  this.Animate = function(){
+    this.sprite.animate({cx: this.x, cy: this.y}, this.speed);
+  }//end animate
+  
+  this.tick = function(){
+    if(!this.block.is_end){
+      this.fitness += 1;
+      this.Move();
+      this.setPosition();
+      this.Animate();
+    }
+  }//end tick
+  
+  //fitness is # of ticks it had plus # of blocks away from end
+  this.calculateFitness = function(){
+    distancex = Math.abs(this.x - this.goal.x);
+    distancey = Math.abs(this.y - this.goal.y);
+    distance = Math.sqrt(Math.pow(distancex,2) + Math.pow(distancey, 2));
+    this.fitness += distance;
+  }
+  
+  this.Die = function(){
+    this.sprite.animate({r: 1}, this.speed);
+    this.calculateFitness();
+    //this.sprite.hide();
+    //this.sprite.remove();
+  }//end die
+  
+  //takes in a breeding route, and outputs a 
+  //route that is half itself, half the other
+  //with a small amount of mutation
+  this.BreedRoute = function(breeding_route){
+    st = "";
+    for(var i = 0; i < this.path_length; i++){
+      chance = Math.random() * 100;
+      if(chance < 90){
+        //mine or theirs
+        if(chance < 50){
+          //mine
+          st += this.route.charAt(i);
+        }else{
+          //theirs
+          st += breeding_route.charAt(i);
+        }//end mine or theirs
+      }else{
+       //mutate
+       st += this.randomDirection();
+      }//end if
+    }//end for
+    return st;
+  }//end breed
+  
+  
+  
+  
+  
+}//end evo.

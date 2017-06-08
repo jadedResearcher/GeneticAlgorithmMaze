@@ -1,0 +1,192 @@
+<html>
+	<head>
+		<title>Example of Zombie SIm</title>
+		<script type = "text/javascript" src="../Objects/Blocks/Block.js"></script>
+	        <script type = "text/javascript" src="../Objects/Creatures/Zombie.js"></script>
+	        <script type = "text/javascript" src="../Objects/Creatures/Human.js"></script>
+		<script type = "text/javascript" src="../scripts/raphael-min.js"></script>
+		<script type = "text/javascript">
+		
+		        var debug = false;
+	                var human_density = 50;
+	                var zombie_density = 20;
+			var speed = 1000;
+			var wall_density = 50;
+		        var block_width = 25;
+			var height = block_width*20;
+			var width = block_width*30;
+
+		        //a matrix (array of arrays) to hold all blocks.
+		        var world = new Array(Math.round(height/block_width)); 
+		        var zombies = new Array();
+		        var zombie_sprites = new Array();
+		        var humans = new Array();
+		        var human_sprites = new Array();
+		        var current_time = new Date();
+		        var debug_tick = 0;
+			window.onload = function(){
+
+
+			paper = new Raphael(document.getElementById('sim'),width,height);
+			var ground = paper.rect(0,0,width,height);
+		        ground.attr("fill", "#eeeeee")
+
+
+		        //[down][over]
+			world = buildWorld(height, width, block_width, world);
+			zombies = spawnZombies(world, zombies, zombie_sprites);
+			humans = spawnHumans(world, humans, human_sprites);
+
+			setInterval("startTimer()", speed);
+
+			//checkBlocks();
+	                
+			}//end on load
+			
+		      //look for any missing blocks	
+		      function checkBlocks(){
+		        for(i in world){
+		      	  for(j in world[i]){
+		      	    if(!world[i][j]){
+		      	      //alert("Found problem at: " + i.toString() + "," + j.toString());
+		      	    }else{
+		      	      //console.log(i.toString() + "," + j.toString());
+		      	    }
+		      	  }//end j
+		        }//end i
+		      }	//end check blocks
+	             //generate all blocks		
+	             function buildWorld(height, width, block_width, world){
+			//width
+			for(var i = 0; i < height; i+= block_width){
+				//set this row in the matrix	
+			  	world[i/block_width] = new Array(Math.round(width/block_width));	
+				for(var j = 0; j < width; j+=block_width){
+				  if(Math.random() * 100 < wall_density){
+				  	var block = new Block(j,i,block_width,1,1,1)
+				  }else{
+				  	var block = new Block(j,i,block_width,230,230,230)
+				  }
+	
+				  world[i/block_width][j/block_width] = block;
+				  var block_sprite = paper.rect(block.x, block.y, block.width, block.width);
+			          block_sprite.attr("fill", block.color);
+			          block_sprite.attr("stroke", "none");
+				}//end for j
+			
+			}//end for i
+			return world;
+	           }//end buildWorld
+	           
+	           function spawnZombies(world, zombies, zombie_sprites){
+	             for(b in world[0]){
+	               block = world[0][b];
+	               if(!block.isBarrier()  && Math.random() * 100 < zombie_density){
+	                  //each light block spawns exactly one zombie, for now
+			  var zombie = new Zombie(block.x+Math.round(block_width/2), Math.round(block.y+block_width/2), height, width, block_width);
+			  zombie_sprite = paper.circle(zombie.x, zombie.y, 3);
+			  zombie_sprite.attr("fill", zombie.color);
+			  zombies.push(zombie);
+			  zombie_sprites.push(zombie_sprite);
+	               }else{
+	                 ////console.log("coliding");
+	               }
+	             }//end for blocks
+	             return zombies;
+	           }//end spawnZombies
+	           
+	           
+	          function spawnHumans(world, zombies, zombie_sprites){
+	             for(a in world){
+	               for(b in world[a]){
+	               block = world[a][b];
+	               //likliehood of humans is greatest at top
+	               if(!block.isBarrier() && Math.random() * 100 < (human_density - (a * 5))){
+	                  //each light block spawns exactly one zombie, for now
+			  var human = new Human(block.x+Math.round(block_width/2), Math.round(block.y+block_width/2), height, width, block_width);
+			  human_sprite = paper.circle(human.x, human.y, 3);
+			  human_sprite.attr("fill", human.color);
+		         // human_sprite.attr("stroke", "none");
+			  humans.push(human);
+			  human_sprites.push(human_sprite);
+	               }else{
+	                 ////console.log("coliding");
+	               }
+	               }//end for blocks
+	             }//end for row inblocks
+	             
+	             
+	             return zombies;
+	           }//end spawnHumans
+	           
+	          //the tick 
+	          function startTimer(){
+	            	tick();
+	            	reanimate_dead();
+	          };
+	          
+	          //each tick, creatures move slightly
+	          function tick(){
+	             debug_tick += 1;
+	             old_time = current_time
+	             current_time = new Date();
+	             diff = current_time - old_time;
+	             if(debug == true){
+	               console.log(""+ debug_tick + ": " + diff + " " + zombies.length + "# zombies" + ", " + humans.length + "# humans" );
+	             }
+	            //console.log("tick");
+	            for(var z in zombies){
+	              console.log("zombie tick" + zombies.length);
+	              zombie = zombies[z];
+	              zombie.tick(world);
+	              zombie_sprites[z].animate({cx: zombie.x, cy: zombie.y}, speed);
+	              //check if dead zombie. just leave there and stop ticking
+	              if(zombie.dead == true){ 
+	                zombie_sprites[z].animate({fill: "#338811"}, speed/10);
+	                zombie_sprites.splice(z,1);
+		        zombies.splice(z,1);
+		     }
+	            }//end for each zombie
+
+	           for(var z in humans){
+	              human = humans[z];
+	              human.tick(world, humans, zombies);
+	              human_sprites[z].animate({cx: human.x, cy: human.y}, speed);
+	            }//end for each zombie
+	          }
+	          
+	          //turn all dead humans into zombies
+	          function reanimate_dead(){
+	            for(var z in humans){
+	              if(humans[z].dead == true){
+	              //add zombie
+	                  var zombie = new Zombie(humans[z].x, humans[z].y, height, width, block_width);
+	                  var zombie_sprite = paper.circle(zombie.x, zombie.y, 3);
+			  zombie_sprite.attr("fill", zombie.color);
+			  zombies.push(zombie);
+			  zombie_sprites.push(zombie_sprite);
+	                humans[z].dead = false //prevent multiple zombies from one thing
+	                //remove human
+	                //console.log(humans.length);
+	                human_sprites[z].hide();
+	                human_sprites.splice(z,1);
+		       humans.splice(z,1);
+		       //console.log(humans.length);
+	              }//end if dead
+	            }//end all humans
+	          }//end reanimate dead
+	           
+
+			
+		
+		</script>
+	</head>
+
+	<body>
+		<h1>Example of Zombie Sim</h1>
+		Zombies (red) cannot go into dark blocks (walls). They can move in any adjacent white space (including diagonals).
+		<div id = "sim">
+
+		</div>
+	</body>
+</html>

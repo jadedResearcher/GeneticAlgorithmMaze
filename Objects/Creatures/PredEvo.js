@@ -1,0 +1,385 @@
+//Evos are creatures that a genetic algorithm is used on.
+//there genes are the path they will take through the maze
+//such as L R U D R L  
+//if they attempt to move into a block that is a barrier, 
+//they simply remain where they are.
+
+//Predator Evos take this one further...
+//they have a lifespan, and die if they've lived too many ticks
+//or if they are too hungry
+//every x ticks (where x is constant across all survival evos)
+//they try to breed. Breeding is succesfull if there are other survival evos in their block
+//they breed once with every evo sharing their block
+//their hunger increases over time. When it gets over a certain threshold, they try to eat.
+//eating is successfull if there is Survival Evos on the block they are in.
+//when eating, hunger decreases.
+
+//each evo is on one and only one block, but is rendered randomly on said block.
+//each evo moves to another block, and is again rendered randomly on that block
+function PredEvo(block, block_width, world, speed, path_length,size, route){
+  this.block = block;
+  this.speed = speed;
+  this.block_width = block_width;
+  this.route = route;
+  this.cause_of_death = null;
+  this.size = size;
+  this.hunger = 0;
+  this.diseased = false;
+  this.disease_clock = this.path_length/5;
+  this.dead = false;
+  this.path_length = path_length;
+  this.world = world; //don't expect this to change
+  this.route_index = 0;
+  this.time_since_mating = 0;
+  //lower the fitnes, the better it is
+  this.fitness = null;
+  
+  this.setSprite = function(mysprite){
+     this.sprite = mysprite;
+     this.sprite.attr({stroke: "#ff2222"});
+  };
+  
+  this.randomDirection = function(){
+     chance = Math.random() * 100;
+     //diseased creatures head down more often than not
+     //and very rarely left
+     if(this.diseased == true){
+       chance = Math.random() * 80;
+     }
+     if(chance > 75){
+         return "L";
+     }else if(chance < 75 && chance > 50){
+         return "R";
+     }else if(chance < 50 && chance > 25){
+        return "U";
+     }else{
+         return "D";
+     }
+  }//end random direction
+  
+  this.randomPath = function(){
+    // //console.log("making random path");
+     var st = ""
+     for(var i = 0; i < this.path_length; i++){
+       st += this.randomDirection();
+     }//end for
+     return st;
+  }//end random Path
+  
+
+  
+  //chooses a random position on the block to be at.
+  this.setPosition = function(){
+    //upper left corner?
+    //so i can go width down, or width to the right.
+    target_x = this.block.x;
+    target_y = this.block.y;
+    //console.log("Target: " + target_x + ", " + target_y + " Max " + (target_x + this.block_width) + ", " + (target_y + this.block_width));
+    this.x = target_x + Math.round((Math.random() * this.block_width));
+    this.y = target_y + Math.round((Math.random() * this.block_width));
+    this.x_index = Math.floor(this.x / this.block_width);
+    //console.log("Actual: " + this.x + ", " + this.y);
+    this.y_index = Math.floor(this.y /this.block_width);    
+  };
+  
+  //diseased creatures are marked, and have their dna (path) scrambled.
+  //this has a benefit: bringing genetic diversity (they can still produce healthy offspring)
+  //however, it's at the cost of a shortened lifespan.
+  this.makeDiseased = function(){
+     this.diseased = true;
+     //this.sprite.animate({stroke: "#ff2222"}, 0);
+     this.sprite.animate({stroke: "#8e9b61"}, 0);
+     this.randomPath();
+     this.setColor();
+  }
+  
+  this.setColor = function(){
+      this.red = 0;
+      this.blue = 0;
+      this.green = 0;
+    //  //console.log(this.route);
+      for(var i = 0; i < this.route.length; i++){
+        if(this.route.charAt(i) == 'L'){
+          this.blue += Math.floor(255/this.path_length);
+        }
+        if(this.route.charAt(i) == 'R'){
+          this.green += Math.floor(255/this.path_length);
+        }
+        if(this.route.charAt(i) == 'U' || this.route.charAt(i) == 'D'){
+          this.red += Math.floor(255/(this.path_length*2));
+        }
+      }//end for
+      
+      this.color = "rgb(" + this.red + "," + this.green + "," + this.blue +")";
+      //console.log(this.color);
+  };
+  
+  
+  if(this.route == null){
+    this.route = this.randomPath();
+  }
+  
+  //can't call them before they are defined, so have to set position and color here, not at top
+  this.setPosition();
+  this.setColor();
+  
+  
+  // ?~~~~~~~~~~~~~~~~~~~End initializing functions and parms~~~~~//
+  
+  //attempt to move in the direction specified.
+  //don't move at all if blocked
+  this.Move = function(){
+    potential_block = null;
+    direction = this.route.charAt(this.route_index);
+    this.route_index ++;
+    //go left
+    if(direction == 'L'){
+    //not sure why this is necessary but it is
+    //sometimes my CURRENT position is an invalid on in the matrix (one longer than it should be on the y axis)
+    //when i have so many checks against it.
+       if(this.world[this.y_index] != null){
+        potential_block = this.world[this.y_index][this.x_index - 1];
+        x_pot = this.x_index - 1;
+        y_pot = this.y_index;
+      }
+    };
+    
+    if(direction == 'R'){
+      if(this.world[this.y_index] != null){
+        potential_block = this.world[this.y_index][this.x_index + 1];
+        x_pot = this.x_index + 1;
+        y_pot = this.y_index;
+      }
+    };
+    
+    if(direction == 'U'){
+    //have to check row
+      if(this.world[this.y_index -1]){
+       potential_block = this.world[this.y_index - 1][this.x_index];
+       x_pot = this.x_index;
+       y_pot = this.y_index - 1;
+      }
+    };
+    
+    if(direction == 'D'){
+      if(this.world[this.y_index + 1]){
+        potential_block = this.world[this.y_index + 1][this.x_index];
+        x_pot = this.x_index;
+        y_pot = this.y_index + 1;
+      }
+    };
+    
+    if(potential_block != null && !potential_block.isBarrier()){
+      //console.log("moving to " + x_pot + ", " + y_pot + " from " + this.x_index + ", " + this.y_index );
+      this.block.removePredEvo(this);
+      potential_block.addPredEvo(this);
+      this.block = potential_block;
+      this.x_index = x_pot;
+      this.y_index = y_pot;
+      if(this.world[this.y_index] == null){
+        console.log("found an error");
+      }
+      ////console.log(this.x_index + ", " + this.y_index);
+    }else{
+    //do nothing
+    }    
+  }//end move
+
+  //try to eat.
+  //if there are evos on the block i am on, eat them.
+  this.Eat = function(){  
+    prey = this.block.evos;
+    if(prey.length > 0){
+      this.hunger = 0;
+      if(prey[0].diseased == true){
+        this.makeDiseased();
+      }
+      prey[0].Die("murder");
+    }
+    //if still hungry, start looking at adjacents
+    if(this.hunger != 0){
+     left = block.get_left(world,this.y_index, this.x_index)
+     right = block.get_right(world,this.y_index, this.x_index)
+     up = block.get_up(world,this.y_index, this.x_index)
+     down = block.get_down(world,this.y_index, this.x_index)
+      
+    if(left != null && this.hunger == 0){
+      if(left.evos.length > 0){
+        this.hunger = 0;
+      if(left[0].diseased  == true){
+        this.makeDiseased();
+      }
+        left.evos[0].Die("murder");
+        done = true
+      }//done if left plant
+     }else if(right != null && this.hunger == 0){
+      if(right[0].evos.length > 0){
+        this.hunger = 0;
+      if(right[0].diseased  == true){
+        this.makeDiseased();
+      }
+        right.evos[0].Die("murder");
+        done = true
+      }//done if right plant
+     }else if(up != null && this.hunger == 0){
+      if(up.evos.length > 0){
+        this.hunger = 0;
+      if(up[0].diseased  == true){
+        this.makeDiseased();
+      }
+        up.evos[0].Die("murder");
+        done = true
+      }//done if up plant
+     }else if(down != null && this.hunger == 0){
+       if(down.evos.length > 0){
+        this.hunger = 0;
+       if(down[0].diseased  == true){
+        this.makeDiseased();
+      }
+        down.evos[0].Die("murder");
+        done = true
+      }//dont if down plant
+     }//done if this left exists
+     
+    }//end look adj
+    
+    if(this.hunger == 0){
+       this.block.addFertility();//poop
+    }
+  }//end eat
+  
+  this.Animate = function(){
+    if(this.route_index < 2){
+      this.sprite.animate({r: this.size/2,cx: this.x, cy: this.y }, this.speed);
+    }else{
+      this.sprite.animate({r: this.size, cx: this.x, cy: this.y}, this.speed);
+    }
+  }//end animate
+  
+  this.tick = function(evos){
+    this.hunger += 1;
+    this.time_since_mating += 1;
+    if(!this.block.is_end){
+      this.Move();
+      this.setPosition();
+      this.Animate();
+    }
+    
+    if(this.route_index >= this.route.length ){
+      this.Die("old age");
+    }
+    
+    if(this.hunger > 18){
+      this.Die("hunger");
+    }
+    
+    if(this.hunger > 1){
+       this.Eat();
+    }
+    
+    if(this.diseased == true){
+      this.disease_clock += -1;
+    }
+    
+    if(this.disease_clock < 0){
+      this.Die("disease");
+      console.log("disease");
+    }
+    
+    if(this.block.burning == true){
+       this.Die("fire");
+    }    
+    
+    if(this.time_since_mating > 10 && this.hunger < 10){
+      this.findMates(evos);
+    }
+  }//end tick
+  
+
+  //mate with every evo on your block
+  this.findMates = function(evos){
+   mates = this.block.pred_evos;
+   if(mates.length > 0){
+     for(m in mates){
+       //close contact with diseased creatures make you diseased
+       if(mates[m].diseased == true){
+           this.makeDiseased();
+       }
+       if(mates[m].time_since_mating > 10){
+         this.time_since_mating = 0;
+         baby_route = this.BreedRoute(mates[m].route);
+         baby = new PredEvo(this.block, this.block_width, world, speed, this.path_length,this.size, baby_route)
+         baby_sprite = paper.circle(baby.x, baby.y, baby.size/2);
+         baby_sprite.attr("fill", baby.color);
+         baby_sprite.attr("stroke-width", 2);
+         baby.setSprite(baby_sprite); 
+         evos.push(baby);
+         this.hunger += 3;
+       }
+     }//end for all mates
+   }//end if any mates
+  }//end find mates
+  
+
+  this.Die = function(method){
+    this.dead = true;
+    this.cause_of_death = method;
+    if(method == "hunger"){
+      this.sprite.animate({r: 1}, 0, "none", function(){
+            this.hide();
+      });
+    }else if(method == "fire"){
+       this.sprite.animate({fill: "#000000"}, 100, "none", function(){
+            this.hide();
+      }); 
+    }else if(method == "old age"){
+      this.sprite.animate({r: 1, stroke: "#ff0000"}, 0, "none", function(){
+           this.hide();
+      });
+    }else if(method == "murder"){
+      this.sprite.animate({fill: "#ff0000", r: 2}, 0, "none", function(){
+          this.hide();
+      });
+    }else if(method == "disease"){
+      this.block.add_disease();
+      this.sprite.animate({r: 1, stroke: "#ff0000"}, 100, "none", function(){
+         this.hide();
+      });
+    }
+    this.block.removeEvo(this);
+    //dead body decomposes
+    this.block.addFertility();
+    this.block.addFertility();
+    //this.sprite.remove();
+
+  }//end die
+  
+  //takes in a breeding route, and outputs a 
+  //route that is half itself, half the other
+  //with a small amount of mutation
+  this.BreedRoute = function(breeding_route){
+    st = "";
+    for(var i = 0; i < this.path_length; i++){
+      chance = Math.random() * 100;
+      if(chance < 65){
+        //mine or theirs
+        if(chance < 50){
+          //mine
+          st += this.route.charAt(i);
+        }else{
+          //theirs
+          st += breeding_route.charAt(i);
+        }//end mine or theirs
+      }else{
+       //mutate
+       st += this.randomDirection();
+      }//end if
+    }//end for
+    return st;
+  }//end breed
+  
+  
+  
+  
+  
+}//end evo.

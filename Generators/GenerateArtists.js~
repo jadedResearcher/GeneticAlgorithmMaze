@@ -1,0 +1,184 @@
+//generates a set of Evos that can solve a given maze.
+//using genetic algorithms
+function MazeSurvivalGenerator(num_evos, num_ticks, block_width, world, paper, start, speed, num_gens,evo_size){
+  this.world = world;
+  this.speed = speed;
+  this.block_width = block_width;
+  this.num_evos = num_evos;
+  //needed to know where to spawn evos
+  this.start = start;
+  this.evo_size = evo_size;
+  this.done = false;
+  this.evos = new Array();
+  this.num_ticks = 0;
+  this.max_num_ticks = num_ticks;
+  this.generation_number = 1;
+  
+  //randomly generates some evos
+  this.firstGeneration = function(){
+    for(var i = 0; i < this.num_evos; i++){
+      evo = new ArtistEvo(this.start, this.block_width, this.world, speed, this.max_num_ticks, this.evo_size);
+      this.start = this.start.get_right(this.world, evo.y_index, evo.x_index); //always put next creature to the right
+      if(this.start == null){
+        this.start = this.world[Math.min(i, Math.floor(Math.random() * (world.length-1)))][0];//if you have to reset, also pick random row
+      }
+
+      this.evos[i] = evo;
+      evo_sprite = paper.circle(evo.x, evo.y, this.evo_size/2);
+      evo_sprite.attr("fill", evo.color);
+      evo.setSprite(evo_sprite);
+    }
+  }//end generate
+  
+  this.firstPredator = function(){
+      evo = new PredEvo(this.start, this.block_width, world, speed, this.max_num_ticks, this.evo_size*2, this.evos[0].route);
+      this.start = this.evos[0].block;
+      this.pred_evos[0] = evo;
+      evo_sprite = paper.circle(evo.x, evo.y, this.evo_size);
+      evo_sprite.attr("fill", evo.color);
+      evo_sprite.attr("stroke-width", 2);
+      evo.setSprite(evo_sprite);
+      this.story_generator.writeStory("Predator Spawn", 1);
+  }
+  
+  this.process_deaths = function(method){
+    this.total_deaths += 1;
+    if(method == "old age"){
+       this.num_old_age += 1;
+    }
+    if(method == "murder"){
+       this.num_murder += 1;
+    }
+    
+    if(method == "hunger"){
+       this.num_starvation += 1;
+    }    
+    
+   if(method == "disease"){
+       this.num_disease += 1;
+   }
+   
+   if(method == "fire"){
+      this.num_fire += 1;
+   }    
+    
+  }//end process deaths
+  
+
+  
+
+  this.compare = function(prev_deaths, prev_age, prev_murder, prev_hunger, prev_disease, prev_amount, prev_predator, prev_fire){
+    //if more than a third died, mention it.
+   // console.log(prev_deaths + "," + prev_age + "," + prev_murder + "," + prev_hunger + "," + prev_amount + "," + prev_predator);
+    if((this.total_deaths - prev_deaths > prev_amount/6) && this.total_deaths - prev_deaths > 2){
+      this.story_generator.writeStory("Many Deaths", this.total_deaths - prev_deaths);
+    }
+    //if there were a lot of natural deaths, mention it.
+    if((this.num_old_age - prev_age > prev_amount/10) ){
+      this.story_generator.writeStory("Natural Deaths", this.num_old_age - prev_age);
+    }
+    //lots of murder
+    if((this.num_murder - prev_murder > prev_amount/10)){
+       this.story_generator.writeStory("Predator Deaths", this.num_murder - prev_murder);
+    }
+    //lots of hunger
+    if((this.num_starvation - prev_hunger > prev_amount/10) ){
+      this.story_generator.writeStory("Starvation Deaths", this.num_starvation - prev_hunger);
+    }
+    
+    //lots of disease
+    if((this.num_disease - prev_disease > prev_amount/10) ){
+      this.story_generator.writeStory("Disease Deaths", this.num_disease - prev_disease);
+    }
+    //lots of fire    
+    if(this.num_fire - prev_fire > prev_amount/10){
+       this.story_generator.writeStory("Fire Deaths", this.num_fire-prev_fire);
+    }
+    
+    //lots of births
+    if((this.evos.length - prev_amount > prev_amount/8) && this.evos.length - prev_amount > 2){
+      this.story_generator.writeStory("Many Births", this.evos.length - prev_amount);
+    }
+    //last predator dies adn it did a lot of damage
+    if((this.pred_evos.length == 0 && prev_predator != 0) && this.evos.length < this.num_evos/2){
+      this.story_generator.writeStory("No Predators, Few Evos", this.evos.length);
+    }
+    //if the last predator dies, but the creatures are flourising
+    if((this.pred_evos.length == 0 && prev_predator != 0) && this.evos.length >= this.num_evos){
+      this.story_generator.writeStory("No Predators, Many Evos", this.evos.length);
+    }
+    
+    //if there just became more predators than prey, comment
+    if((this.pred_evos.length > this.evos.length)){
+      this.story_generator.writeStory("Too Many Predators", this.pred_evos.length);
+    }
+    
+    if((this.evos.length > this.num_evos) && (prev_amount <= this.num_evos+5)){
+      this.story_generator.writeStory("Replenished Evos", this.evos.length);
+    }
+    
+    if((this.evos.length < 5) && (prev_amount >= 5)){
+      this.story_generator.writeStory("Too Few Evos", this.evos.length);
+    }
+    
+    if((this.evos.length > this.num_evos * 2) && (prev_amount >= this.num_evos * 1)){
+      this.story_generator.writeStory("Too Many Evos", this.evos.length);
+    }
+
+  }//end compare
+
+  
+  //ticks all evos
+  this.tick = function(){
+    this.num_ticks += 1;
+    //lets's me figure out how many died and were born this round
+    prev_deaths = this.total_deaths;
+    prev_age = this.num_old_age;
+    prev_murder = this.num_murder;
+    prev_hunger = this.num_starvation;
+    prev_disease = this.num_disease;
+    prev_amount = this.evos.length;
+    prev_pred = this.pred_evos.length;
+    prev_fire = this.num_fire;
+    
+    for(evo in this.evos){
+    //don't tick every one every time
+      if(Math.random()*100 < 50){
+       this.evos[evo].tick(this.evos);
+       //don't tick on dead evos
+       if(this.evos[evo].dead == true){
+         this.process_deaths(this.evos[evo].cause_of_death);
+         this.evos.splice(evo, 1);
+       }
+     }//end if random
+   }//end for
+   
+        //spawn predator
+     if((this.evos.length > this.num_evos && this.pred_evos.length == 0)){
+       this.firstPredator();
+     }
+     
+     if(this.evos.length == 0){
+       this.story_generator.writeStory("No Evos", 0);
+       this.done = false;//don't stop now that people can spawn more creatures
+       //this.firstGeneration();
+     }
+     
+     for(evo in this.pred_evos){
+      //don't tick every one every time
+      if(Math.random()*100 < 90){
+       this.pred_evos[evo].tick(this.pred_evos);
+       //don't tick on dead evos
+       if(this.pred_evos[evo].dead == true){
+         this.pred_evos.splice(evo, 1);
+       }
+     }//end if predevos
+     }//end for loop
+     
+     //now do comparisons.
+     this.compare(prev_deaths, prev_age, prev_murder, prev_hunger, prev_disease, prev_amount, prev_pred, prev_fire);
+  }//end tick
+  
+ 
+        
+}//end function block

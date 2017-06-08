@@ -1,0 +1,149 @@
+//generates a set of Evos that can solve a given maze.
+//using genetic algorithms
+function MazeSolverGenerator(num_evos, num_ticks, block_width, world, paper, start, end, speed, num_gens,evo_size){
+  this.world = world;
+  this.speed = speed;
+  this.block_width = block_width;
+  this.num_evos = num_evos;
+  //needed to know where to spawn evos
+  this.start = start;
+  this.evo_size = evo_size;
+  this.end = end;
+  this.evos = new Array();
+  //console.log("Hello");
+  this.num_ticks = 0;
+  this.best_fitness = 99999;
+  this.best_generation = 0;
+  this.max_num_ticks = num_ticks;
+  this.generation_number = 1;
+  this.max_generations = num_gens;
+  this.best_route = "";
+  this.average_fitness = 0;
+  this.generation_summary = "";
+  //randomly generates some evos
+  this.firstGeneration = function(){
+    for(var i = 0; i < this.num_evos; i++){
+      evo = new Evo(this.start, this.end, this.block_width, world, speed, this.max_num_ticks);
+      this.evos[i] = evo;
+      evo_sprite = paper.circle(evo.x, evo.y, this.evo_size);
+      evo_sprite.attr("fill", evo.color);
+      evo.setSprite(evo_sprite);
+    }
+  }//end generate
+  
+  //sorts evos by fitness
+  this.SortEvos = function(a,b){
+   return a.fitness > b.fitness
+  }
+  
+  //adds new lines to the best route
+  this.parseRoute = function(){
+    ret = ""
+    for(var i = 0; i < this.best_route.length; i+=5){
+       ret += this.best_route.substr(i,5) + "\n";
+    }
+    return ret;
+  }//end parse route
+  
+  //select the x best evos, and have them each have two children
+  this.selectBreeders = function(){
+    var top = this.evos.sort(this.SortEvos);
+    //grab the top half
+    top = top.slice(0,this.num_evos/2);
+    return top;
+  }//end select breeders
+  
+  this.breedBreeders = function(top){
+      babies = [];
+      for(t in top){
+      fit = Math.floor(top[t].fitness);
+      //console.log(top[t].fitness);
+      top[t].sprite.animate({stroke: "#f00", "r": 1}, this.speed);
+      this.average_fitness += fit;
+      old_fitness = this.best_fitness;
+      this.best_fitness = Math.min(this.best_fitness, fit);
+      if(this.best_fitness != old_fitness){
+        this.best_generation = this.generation_number;
+        this.best_route = top[t].route;
+      }
+      this.generation_summary += "\n " + fit;
+      //breed with something far away
+      route1 = top[t].BreedRoute(top[top.length - 1 -t].route);
+      if(top[t-0+1] != null){
+      //breed with next thing
+        //weird - 0 + 1 makes it be an int (for some reason thought it was a string? or something? kept being 01,02,03 etc )
+        route2 = top[t].BreedRoute(top[t - 0 + 1].route);
+      }else{
+         route2 = top[t].BreedRoute(top[0].route);
+      }
+
+      baby1 = new Evo(this.start, this.end, this.block_width, world, speed, this.max_num_ticks, route1)
+      baby1_sprite = paper.circle(baby1.x, baby1.y, this.evo_size);
+      baby1_sprite.attr("fill", baby1.color);
+      baby1.setSprite(baby1_sprite);      
+
+      baby2 = new Evo(this.start, this.end, this.block_width, world, speed, this.max_num_ticks, route2)
+      baby2_sprite = paper.circle(baby2.x, baby2.y, this.evo_size);
+      baby2_sprite.attr("fill", baby2.color);
+      baby2.setSprite(baby2_sprite);
+
+      babies.push(baby1);
+      babies.push(baby2);
+    }//end for breeders
+
+    return babies;
+  }//end breeding
+  
+  this.showBest = function(){
+      if(this.evos.length != 1){
+        this.evos = []
+        best = new Evo(this.start, this.end, this.block_width, world, speed, this.max_num_ticks, this.best_route)
+        best_sprite = paper.circle(best.x, best.y, this.evo_size*2);
+        best_sprite.attr("fill", best.color);
+        best.setSprite(best_sprite);
+        this.evos.push(best);
+        }else{
+          this.evos[0].tick();
+        }
+  }//end show best
+  
+  //uses the current generation to make a new generation
+  //wipes the old generation.
+  this.newGeneration = function (){
+      this.average_fitness = 0;
+      this.generation_summary = "";
+      this.generation_number ++;
+
+      this.num_ticks = 0;
+    //use the old generation to create the new
+    //destroy the old
+      for(evo in this.evos){
+        this.evos[evo].Die();
+      }//end for
+      breeders = this.selectBreeders();
+      this.evos = this.breedBreeders(breeders);
+      this.average_fitness = Math.floor(this.average_fitness/(this.num_evos/2));
+      //console.log("Generation: " + this.generation_number + " Average Top Fitness: " + this.average_fitness);
+
+    //start with the new
+    
+  }//end new generation
+  
+  //ticks all evos
+  this.tick = function(){
+    this.num_ticks += 1;
+    if(this.generation_number < this.max_generations){
+      if(this.num_ticks < this.max_num_ticks){
+        for(evo in this.evos){
+          this.evos[evo].tick();
+        }//end for
+      }else{
+        this.newGeneration();
+      }//end if gen done
+    }else{
+      this.showBest();      
+    }//end generation limit
+
+  }//end tick
+        
+}//end function block
